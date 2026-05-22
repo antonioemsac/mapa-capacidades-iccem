@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ICCEM · Mapa de capacidades productivas</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<style>
+:root {
+    --bg: #0f172a;
+    --surface: #1e293b;
+    --surface2: #273348;
+    --text: #e2e8f0;
+    --text2: #b0bec5;
+    --accent: #38bdf8;
+    --accent2: #818cf8;
+    --gold: #f59e0b;
+    --green: #10b981;
+    --red: #ef4444;
+    --orange: #f97316;
+    --radius: 12px;
+    --shadow: 0 4px 24px rgba(0, 0, 0, .35);
+    --line: #2d3a4f;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+    min-height: 100vh;
+}
+header {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    padding: 1.2rem 2rem;
+    border-bottom: 2px solid #1e3a5f;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: var(--shadow);
+}
+.header-wrap {
+    max-width: 1500px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 2.5rem;
+}
+h1 {
+    font-size: 1.3rem;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+    margin: 0;
+}
+.title-gradient {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+.subtitle {
+    color: #94a3b8;
+    font-size: 0.85rem;
+    margin-top: 0.2rem;
+}
+.controls {
+    display: flex;
+    gap: 0.7rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+.controls select,
+.controls button {
+    padding: 0.55rem 1rem;
+    border-radius: 8px;
+    border: 1px solid #334155;
+    background: var(--surface);
+    color: var(--text);
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+}
+.controls select:hover,
+.controls button:hover {
+    border-color: var(--accent);
+    background: #1e3a5f;
+}
+.controls button.active {
+    background: var(--accent);
+    color: #000;
+    border-color: var(--accent);
+    font-weight: 600;
+}
+.wrap {
+    max-width: 1500px;
+    margin: 0 auto;
+    padding: 1.2rem;
+}
+.hero {
+    display: grid;
+    grid-template-columns: 1.35fr .65fr;
+    gap: 1.2rem;
+    margin-bottom: 1rem;
+}
+.card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 1.3rem;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--line);
+    margin-bottom: 1rem;
+}
+.card h2,
+.card h3 {
+    margin-bottom: 0.8rem;
+    color: #cbd5e1;
+    font-weight: 600;
+}
+.card h2 { font-size: 1.05rem; }
+.card h3 { font-size: 1rem; }
+.lead { font-size: .98rem; color: var(--text); max-width: 980px; }
+.small { color: var(--text2); font-size: .84rem; }
+.grid { display: grid; gap: 1rem; }
+.grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.kpis {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 0.8rem;
+    margin-top: 1rem;
+}
+.kpi {
+    background: var(--surface2);
+    border-radius: 10px;
+    padding: 1rem;
+    text-align: center;
+    border: 1px solid #334155;
+}
+.kpi .v {
+    font-size: 1.8rem;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    color: var(--accent);
+}
+.kpi .l {
+    font-size: 0.75rem;
+    color: #94a3b8;
+    margin-top: 2px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.pill, .tag {
+    display: inline-block;
+    padding: 0.3rem 0.7rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    border: 1px solid #334155;
+    background: var(--surface2);
+}
+.pill.green { background: #064e3b; color: #34d399; }
+.pill.blue { background: #1e3a5f; color: #93c5fd; }
+.pill.gold { background: #78350f; color: #fcd34d; }
+.pill.red { background: #7f1d1d; color: #fca5a5; }
+.tag { color: var(--text2); }
+.taglist { display: flex; gap: 0.45rem; flex-wrap: wrap; margin-top: 0.6rem; }
+.dim-row {
+    display: grid;
+    grid-template-columns: 130px 1fr 44px;
+    gap: 10px;
+    align-items: center;
+    margin: 9px 0;
+    font-size: .84rem;
+}
+.bar-bg {
+    height: 20px;
+    background: #1a2332;
+    border-radius: 6px;
+    overflow: hidden;
+}
+.bar {
+    height: 100%;
+    border-radius: 6px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    transition: width .6s ease;
+}
+.strategy { display: grid; gap: 0.7rem; }
+.step {
+    display: grid;
+    grid-template-columns: 44px 1fr;
+    gap: 12px;
+    padding: 0.9rem;
+    background: var(--surface2);
+    border: 1px solid #334155;
+    border-radius: 10px;
+}
+.num {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    display: grid;
+    place-items: center;
+    font-weight: 800;
+    color: #06111f;
+}
+.sector-card,
+.route-card {
+    background: var(--surface2);
+    border-radius: 10px;
+    padding: 0.9rem;
+    border: 1px solid #334155;
+}
+.sector-card strong { display: block; font-size: 1rem; color: var(--text); }
+.route-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.8rem; }
+.route-card { position: relative; overflow: hidden; }
+.route-card:before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+}
+.route-card h3 { margin-top: 0.2rem; }
+.example {
+    border-left: 4px solid var(--accent);
+    padding: 0.9rem 1rem;
+    background: #1e3a5f;
+    border-radius: 10px;
+    margin-top: 0.8rem;
+    color: var(--text);
+}
+.matrix-wrap { height: 450px; }
+.table-wrap {
+    overflow: auto;
+    max-height: 440px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+}
+table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
+th, td {
+    padding: 0.5rem 0.4rem;
+    border-bottom: 1px solid var(--line);
+    text-align: left;
+}
+th {
+    background: var(--surface2);
+    color: #94a3b8;
+    font-weight: 600;
+    font-size: 0.7rem;
+    letter-spacing: 0.3px;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+tr:hover td { background: #1e3a4f; }
+.hidden { display: none !important; }
+footer {
+    text-align: center;
+    padding: 1rem;
+    color: #ffffff;
+    font-size: 0.90rem;
+    border-top: 1px solid #1e293b;
+    margin-top: 1rem;
+}
+@media (max-width: 1200px) {
+    .hero, .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+    .route-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 680px) {
+    header { padding: 1rem; }
+    .wrap { padding: 1rem; }
+    .route-grid { grid-template-columns: 1fr; }
+    .dim-row { grid-template-columns: 105px 1fr 38px; }
+}
+</style>
+</head>
+<body>
+<header><div class="header-wrap"><div><h1>🧭 <span class="title-gradient">Mapa de capacidades productivas</span> basado en ICCEM–CIIT</h1><div class="subtitle">Istmo de Tehuantepec, Oaxaca · Unidades económicas 2020–2025 · Pesos ACP · Reconversión productiva</div></div><div class="controls"><select id="municipioSelect"></select><button class="active" data-view="diagnostico">Diagnóstico</button><button data-view="mapa">Mapa regional</button><button data-view="ruta">Ruta estratégica</button><button data-view="cartera">Cartera sectorial</button></div></div></header>
+<main class="wrap">
+<section class="hero"><div class="card"><h2>Lectura estratégica</h2><p class="lead">La presente plataforma estratégica convierte el ICCEM en un <b>mapa de capacidades</b>: identifica la posición competitiva de cada municipio, sus sectores dominantes, brechas productivas y una ruta de reconversión hacia agroindustria inteligente, logística, manufactura ligera, energía, turismo, construcción 4.0, robótica e IA aplicada.</p><div class="kpis" id="kpiBox"></div></div><div class="card"><h3>Municipio seleccionado</h3><div id="municipioFicha"></div></div></section>
+<section id="view-diagnostico" class="view"><div class="grid grid-2"><div class="card"><h2>Perfil de capacidades ICCEM</h2><div id="dimensiones"></div><div style="height:310px;margin-top:14px"><canvas id="radar"></canvas></div></div><div class="card"><h2>Sectores dominantes 2025</h2><div id="sectoresTop" class="grid"></div><div class="example" id="ejemploMunicipal"></div></div></div><div class="grid grid-2" style="margin-top:18px"><div class="card"><h2>Diagnóstico de reconversión</h2><div id="diagnosticoTexto"></div></div><div class="card"><h2>Acciones recomendadas por capacidad</h2><div id="accionesCapacidad" class="strategy"></div></div></div></section>
+<section id="view-mapa" class="view hidden"><div class="grid grid-2"><div class="card"><h2>Matriz regional de capacidades</h2><p class="small">Eje X: ICCEM ACP. Eje Y: crecimiento de unidades económicas 2020–2025. Tamaño: número de unidades económicas 2025. Los municipios en la zona superior derecha combinan escala, dinamismo y mejor posición competitiva.</p><div class="matrix-wrap"><canvas id="scatter"></canvas></div></div><div class="card"><h2>Tipología territorial</h2><div id="tipologias"></div></div></div><div class="card" style="margin-top:18px"><h2>Ranking operativo para intervención</h2><div class="table-wrap"><table><thead><tr><th>#</th><th>Municipio</th><th>ICCEM</th><th>Crecimiento UE</th><th>UE 2025</th><th>Tipo de intervención</th><th>Sector tractor</th></tr></thead><tbody id="rankingBody"></tbody></table></div></div></section>
+<section id="view-ruta" class="view hidden"><div class="card"><h2>Ruta de reconversión productiva basada en ICCEM</h2><p class="lead">La ruta parte de capacidades existentes: municipios con alto ICCEM funcionan como nodos tractores; municipios con dinamismo alto requieren consolidación; municipios con baja escala deben insertarse como proveedores especializados.</p><div class="route-grid" id="rutaCards"></div></div><div class="grid grid-2" style="margin-top:18px"><div class="card"><h2>Arquitectura de implementación</h2><div class="strategy" id="arquitectura"></div></div><div class="card"><h2>Ejemplo claro de uso</h2><div class="example"><b>Ejemplo: Salina Cruz / Tehuantepec / Juchitán.</b><br>Si el ICCEM identifica alta escala, diversificación y estabilidad, la ruta no debe concentrarse solo en comercio. Debe convertir esas capacidades en un corredor de proveeduría: logística inteligente, mantenimiento industrial, agroindustria de exportación, construcción 4.0 y servicios tecnológicos para empresas del CIIT.</div></div></div></section>
+<section id="view-cartera" class="view hidden"><div class="card"><h2>Cartera de sectores estratégicos</h2><div class="grid grid-3" id="carteraSectores"></div></div><div class="card" style="margin-top:18px"><h2>Municipios sugeridos por sector tractor</h2><div class="table-wrap"><table><thead><tr><th>Sector</th><th>Municipios base</th><th>Capacidad ICCEM que lo justifica</th><th>Proyecto detonador</th></tr></thead><tbody id="sectorMunicipios"></tbody></table></div></div></section>
+</main><footer>ICCEM–CIIT · Mapa de capacidades productivas y ruta de reconversión · Datos DENUE-INEGI 2020–2025 · Pesos ACP<br>
+<span style="font-weight: 600;">Dr. Antonio Salazar Campos</span><br>
+<span style="font-weight: 600;">Universidad del Istmo</span></footer>
+<script>
+const sensibilidadData = [
+                { m: "Asunción Ixtaltepec", rACP: 15, iccACP: 27.43, iccIg: 32.99, iccSof: 29.96, iccMan: 32.61,
+                    iccDin: 28.42, iccDiv: 41.66, rIg: 13, rSof: 12, rMan: 12, rDin: 15, rDiv: 10, rMin: 10,
+                    rMax: 15, rango: 5, rMed: 12.8, estab: "⚠️ Moderado" },
+                { m: "El Barrio de la Soledad", rACP: 38, iccACP: 18.10, iccIg: 26.11, iccSof: 20.63, iccMan: 23.89,
+                    iccDin: 18.30, iccDiv: 37.91, rIg: 27, rSof: 36, rMan: 32, rDin: 37, rDiv: 15, rMin: 15, rMax: 38,
+                    rango: 23, rMed: 30.8, estab: "❌ Sensible" },
+                { m: "Ciudad Ixtepec", rACP: 5, iccACP: 32.78, iccIg: 37.33, iccSof: 35.94, iccMan: 38.37, iccDin: 32.74,
+                    iccDiv: 43.89, rIg: 5, rSof: 5, rMan: 5, rDin: 5, rDiv: 8, rMin: 5, rMax: 8, rango: 3, rMed: 5.5,
+                    estab: "⚠️ Moderado" },
+                { m: "Chahuites", rACP: 9, iccACP: 30.13, iccIg: 35.81, iccSof: 29.65, iccMan: 35.50, iccDin: 30.68,
+                    iccDiv: 44.48, rIg: 9, rSof: 14, rMan: 8, rDin: 10, rDiv: 5, rMin: 5, rMax: 14, rango: 9, rMed: 9.2,
+                    estab: "❌ Sensible" },
+                { m: "El Espinal", rACP: 16, iccACP: 26.88, iccIg: 31.48, iccSof: 29.76, iccMan: 29.50, iccDin: 27.14,
+                    iccDiv: 37.75, rIg: 14, rSof: 13, rMan: 15, rDin: 18, rDiv: 16, rMin: 13, rMax: 18, rango: 5,
+                    rMed: 15.3, estab: "⚠️ Moderado" },
+                { m: "Guevea de Humboldt", rACP: 11, iccACP: 28.90, iccIg: 30.05, iccSof: 29.31, iccMan: 29.57,
+                    iccDin: 31.97, iccDiv: 34.67, rIg: 16, rSof: 15, rMan: 14, rDin: 6, rDiv: 20, rMin: 6, rMax: 20,
+                    rango: 14, rMed: 13.7, estab: "❌ Sensible" },
+                { m: "Heroica Ciudad de Juchitán de Zaragoza", rACP: 1, iccACP: 73.42, iccIg: 74.03, iccSof: 76.96,
+                    iccMan: 76.96, iccDin: 71.36, iccDiv: 75.26, rIg: 1, rSof: 1, rMan: 1, rDin: 1, rDiv: 1, rMin: 1,
+                    rMax: 1, rango: 0, rMed: 1, estab: "🔒 Muy estable" },
+                { m: "Magdalena Tequisistlán", rACP: 23, iccACP: 22.95, iccIg: 27.57, iccSof: 24.68, iccMan: 26.47,
+                    iccDin: 23.36, iccDiv: 33.52, rIg: 23, rSof: 24, rMan: 21, rDin: 24, rDiv: 24, rMin: 21, rMax: 24,
+                    rango: 3, rMed: 23.2, estab: "⚠️ Moderado" },
+                { m: "Magdalena Tlacotepec", rACP: 24, iccACP: 22.94, iccIg: 25.15, iccSof: 24.20, iccMan: 24.18,
+                    iccDin: 24.36, iccDiv: 29.06, rIg: 31, rSof: 26, rMan: 28, rDin: 21, rDiv: 35, rMin: 21, rMax: 35,
+                    rango: 14, rMed: 27.5, estab: "❌ Sensible" },
+                { m: "Matías Romero Avendaño", rACP: 6, iccACP: 32.44, iccIg: 37.54, iccSof: 33.30, iccMan: 33.41,
+                    iccDin: 31.39, iccDiv: 44.25, rIg: 4, rSof: 7, rMan: 11, rDin: 8, rDiv: 6, rMin: 4, rMax: 11,
+                    rango: 7, rMed: 7, estab: "❌ Sensible" },
+                { m: "Santiago Niltepec", rACP: 32, iccACP: 21.30, iccIg: 24.42, iccSof: 22.15, iccMan: 23.96,
+                    iccDin: 21.92, iccDiv: 28.37, rIg: 34, rSof: 32, rMan: 31, rDin: 32, rDiv: 36, rMin: 31, rMax: 36,
+                    rango: 5, rMed: 32.8, estab: "⚠️ Moderado" },
+                { m: "Reforma de Pineda", rACP: 39, iccACP: 17.73, iccIg: 20.91, iccSof: 18.72, iccMan: 19.84,
+                    iccDin: 17.52, iccDiv: 23.76, rIg: 40, rSof: 41, rMan: 39, rDin: 39, rDiv: 40, rMin: 39, rMax: 41,
+                    rango: 2, rMed: 39.7, estab: "✅ Estable" },
+                { m: "Salina Cruz", rACP: 3, iccACP: 47.41, iccIg: 50.45, iccSof: 46.81, iccMan: 41.17, iccDin: 44.59,
+                    iccDiv: 53.48, rIg: 3, rSof: 3, rMan: 3, rDin: 3, rDiv: 3, rMin: 3, rMax: 3, rango: 0, rMed: 3,
+                    estab: "🔒 Muy estable" },
+                { m: "San Blas Atempa", rACP: 10, iccACP: 29.14, iccIg: 33.73, iccSof: 30.61, iccMan: 33.97, iccDin: 29.22,
+                    iccDiv: 39.46, rIg: 11, rSof: 10, rMan: 10, rDin: 12, rDiv: 13, rMin: 10, rMax: 13, rango: 3,
+                    rMed: 11, estab: "⚠️ Moderado" },
+                { m: "San Dionisio del Mar", rACP: 17, iccACP: 26.64, iccIg: 28.80, iccSof: 27.70, iccMan: 27.38,
+                    iccDin: 28.99, iccDiv: 34.84, rIg: 19, rSof: 17, rMan: 19, rDin: 13, rDiv: 19, rMin: 13, rMax: 19,
+                    rango: 6, rMed: 17.3, estab: "❌ Sensible" },
+                { m: "San Francisco del Mar", rACP: 4, iccACP: 36.68, iccIg: 36.83, iccSof: 36.95, iccMan: 35.89,
+                    iccDin: 41.42, iccDiv: 44.21, rIg: 7, rSof: 4, rMan: 7, rDin: 4, rDiv: 7, rMin: 4, rMax: 7, rango: 3,
+                    rMed: 5.5, estab: "⚠️ Moderado" },
+                { m: "San Francisco Ixhuatán", rACP: 8, iccACP: 30.15, iccIg: 35.87, iccSof: 31.69, iccMan: 34.73,
+                    iccDin: 31.10, iccDiv: 44.51, rIg: 8, rSof: 8, rMan: 9, rDin: 9, rDiv: 4, rMin: 4, rMax: 9, rango: 5,
+                    rMed: 7.7, estab: "⚠️ Moderado" },
+                { m: "San Juan Cotzocón", rACP: 30, iccACP: 21.60, iccIg: 25.67, iccSof: 23.74, iccMan: 24.08,
+                    iccDin: 21.71, iccDiv: 31.58, rIg: 28, rSof: 29, rMan: 29, rDin: 33, rDiv: 30, rMin: 28, rMax: 33,
+                    rango: 5, rMed: 29.8, estab: "⚠️ Moderado" },
+                { m: "San Juan Guichicovi", rACP: 41, iccACP: 16.93, iccIg: 23.80, iccSof: 18.77, iccMan: 21.26,
+                    iccDin: 16.92, iccDiv: 33.19, rIg: 37, rSof: 40, rMan: 38, rDin: 41, rDiv: 25, rMin: 25, rMax: 41,
+                    rango: 16, rMed: 37, estab: "❌ Sensible" },
+                { m: "San Juan Mazatlán", rACP: 46, iccACP: 14.22, iccIg: 18.29, iccSof: 15.47, iccMan: 16.99,
+                    iccDin: 13.44, iccDiv: 21.66, rIg: 44, rSof: 46, rMan: 45, rDin: 46, rDiv: 41, rMin: 41, rMax: 46,
+                    rango: 5, rMed: 44.7, estab: "⚠️ Moderado" },
+                { m: "San Lucas Camotlán", rACP: 30, iccACP: 21.60, iccIg: 18.16, iccSof: 21.34, iccMan: 17.35,
+                    iccDin: 23.24, iccDiv: 13.79, rIg: 45, rSof: 35, rMan: 44, rDin: 26, rDiv: 46, rMin: 26, rMax: 46,
+                    rango: 20, rMed: 37.7, estab: "❌ Sensible" },
+                { m: "San Mateo del Mar", rACP: 21, iccACP: 24.36, iccIg: 27.62, iccSof: 26.51, iccMan: 26.93,
+                    iccDin: 24.36, iccDiv: 31.11, rIg: 21, rSof: 20, rMan: 20, rDin: 21, rDiv: 32, rMin: 20, rMax: 32,
+                    rango: 12, rMed: 22.5, estab: "❌ Sensible" },
+                { m: "San Miguel Chimalapa", rACP: 34, iccACP: 21.12, iccIg: 25.24, iccSof: 22.80, iccMan: 23.56,
+                    iccDin: 22.05, iccDiv: 31.88, rIg: 30, rSof: 31, rMan: 33, rDin: 31, rDiv: 29, rMin: 29, rMax: 34,
+                    rango: 5, rMed: 31.3, estab: "⚠️ Moderado" },
+                { m: "San Miguel Tenango", rACP: 40, iccACP: 17.48, iccIg: 19.69, iccSof: 18.57, iccMan: 18.72,
+                    iccDin: 17.47, iccDiv: 20.96, rIg: 42, rSof: 42, rMan: 42, rDin: 40, rDiv: 42, rMin: 40, rMax: 42,
+                    rango: 2, rMed: 41.3, estab: "✅ Estable" },
+                { m: "San Pedro Comitancillo", rACP: 20, iccACP: 24.90, iccIg: 30.34, iccSof: 27.06, iccMan: 28.19,
+                    iccDin: 25.85, iccDiv: 39.64, rIg: 15, rSof: 18, rMan: 16, rDin: 20, rDiv: 12, rMin: 12, rMax: 20,
+                    rango: 8, rMed: 16.8, estab: "❌ Sensible" },
+                { m: "San Pedro Huamelula", rACP: 14, iccACP: 27.44, iccIg: 29.15, iccSof: 28.52, iccMan: 28.06,
+                    iccDin: 29.36, iccDiv: 33.12, rIg: 18, rSof: 16, rMan: 17, rDin: 11, rDiv: 26, rMin: 11, rMax: 26,
+                    rango: 15, rMed: 17, estab: "❌ Sensible" },
+                { m: "San Pedro Huilotepec", rACP: 18, iccACP: 25.36, iccIg: 29.61, iccSof: 26.72, iccMan: 27.90,
+                    iccDin: 27.12, iccDiv: 38.10, rIg: 17, rSof: 19, rMan: 18, rDin: 19, rDiv: 14, rMin: 14, rMax: 19,
+                    rango: 5, rMed: 17.5, estab: "⚠️ Moderado" },
+                { m: "San Pedro Tapanatepec", rACP: 13, iccACP: 27.98, iccIg: 34.47, iccSof: 30.05, iccMan: 31.94,
+                    iccDin: 28.01, iccDiv: 43.45, rIg: 10, rSof: 11, rMan: 13, rDin: 16, rDiv: 9, rMin: 9, rMax: 16,
+                    rango: 7, rMed: 12, estab: "❌ Sensible" },
+                { m: "Santa María Chimalapa", rACP: 45, iccACP: 15.65, iccIg: 18.84, iccSof: 16.52, iccMan: 17.49,
+                    iccDin: 14.73, iccDiv: 20.09, rIg: 43, rSof: 45, rMan: 43, rDin: 45, rDiv: 44, rMin: 43, rMax: 45,
+                    rango: 2, rMed: 44.2, estab: "✅ Estable" },
+                { m: "Santa María Guienagati", rACP: 44, iccACP: 16.17, iccIg: 21.27, iccSof: 17.53, iccMan: 19.65,
+                    iccDin: 15.65, iccDiv: 26.64, rIg: 39, rSof: 43, rMan: 40, rDin: 44, rDiv: 38, rMin: 38, rMax: 44,
+                    rango: 6, rMed: 41.3, estab: "❌ Sensible" },
+                { m: "Santa María Jalapa del Marqués", rACP: 26, iccACP: 22.25, iccIg: 25.63, iccSof: 24.53, iccMan: 24.88,
+                    iccDin: 23.58, iccDiv: 32.79, rIg: 29, rSof: 25, rMan: 27, rDin: 23, rDiv: 28, rMin: 23, rMax: 29,
+                    rango: 6, rMed: 26.3, estab: "❌ Sensible" },
+                { m: "Santa María Mixtequilla", rACP: 35, iccACP: 20.12, iccIg: 22.23, iccSof: 21.53, iccMan: 21.29,
+                    iccDin: 20.25, iccDiv: 24.09, rIg: 38, rSof: 34, rMan: 37, rDin: 35, rDiv: 39, rMin: 34, rMax: 39,
+                    rango: 5, rMed: 36.3, estab: "⚠️ Moderado" },
+                { m: "Santa María Petapa", rACP: 25, iccACP: 22.45, iccIg: 26.15, iccSof: 23.76, iccMan: 25.81,
+                    iccDin: 23.03, iccDiv: 30.54, rIg: 25, rSof: 28, rMan: 25, rDin: 28, rDiv: 33, rMin: 25, rMax: 33,
+                    rango: 8, rMed: 27.3, estab: "❌ Sensible" },
+                { m: "Santa María Totolapilla", rACP: 29, iccACP: 21.88, iccIg: 24.81, iccSof: 23.63, iccMan: 23.43,
+                    iccDin: 23.13, iccDiv: 29.74, rIg: 32, rSof: 30, rMan: 34, rDin: 27, rDiv: 34, rMin: 27, rMax: 34,
+                    rango: 7, rMed: 31, estab: "❌ Sensible" },
+                { m: "Santa María Xadani", rACP: 12, iccACP: 28.70, iccIg: 33.55, iccSof: 30.90, iccMan: 36.19,
+                    iccDin: 28.76, iccDiv: 36.98, rIg: 12, rSof: 9, rMan: 6, rDin: 14, rDiv: 17, rMin: 6, rMax: 17,
+                    rango: 11, rMed: 11.7, estab: "❌ Sensible" },
+                { m: "Santiago Astata", rACP: 28, iccACP: 21.98, iccIg: 26.12, iccSof: 23.77, iccMan: 25.26, iccDin: 22.60,
+                    iccDiv: 31.49, rIg: 26, rSof: 27, rMan: 26, rDin: 29, rDiv: 31, rMin: 26, rMax: 31, rango: 5,
+                    rMed: 27.8, estab: "⚠️ Moderado" },
+                { m: "Santiago Ixcuintepec", rACP: 36, iccACP: 19.32, iccIg: 19.87, iccSof: 19.70, iccMan: 18.85,
+                    iccDin: 20.19, iccDiv: 20.33, rIg: 41, rSof: 38, rMan: 41, rDin: 36, rDiv: 43, rMin: 36, rMax: 43,
+                    rango: 7, rMed: 39.2, estab: "❌ Sensible" },
+                { m: "Santiago Lachiguiri", rACP: 19, iccACP: 25.14, iccIg: 27.62, iccSof: 26.20, iccMan: 26.10,
+                    iccDin: 27.36, iccDiv: 33.85, rIg: 21, rSof: 21, rMan: 22, rDin: 17, rDiv: 22, rMin: 17, rMax: 22,
+                    rango: 5, rMed: 20.3, estab: "⚠️ Moderado" },
+                { m: "Santiago Laollaga", rACP: 37, iccACP: 18.15, iccIg: 24.59, iccSof: 20.10, iccMan: 22.65,
+                    iccDin: 18.02, iccDiv: 32.96, rIg: 33, rSof: 37, rMan: 36, rDin: 38, rDiv: 27, rMin: 27, rMax: 38,
+                    rango: 11, rMed: 34.7, estab: "❌ Sensible" },
+                { m: "Santiago Yaveo", rACP: 43, iccACP: 16.42, iccIg: 17.51, iccSof: 17.14, iccMan: 16.89, iccDin: 16.22,
+                    iccDiv: 16.49, rIg: 46, rSof: 44, rMan: 46, rDin: 42, rDiv: 45, rMin: 42, rMax: 46, rango: 4,
+                    rMed: 44.3, estab: "⚠️ Moderado" },
+                { m: "Santo Domingo Ingenio", rACP: 27, iccACP: 22.11, iccIg: 27.28, iccSof: 25.10, iccMan: 26.01,
+                    iccDin: 22.39, iccDiv: 34.56, rIg: 24, rSof: 22, rMan: 24, rDin: 30, rDiv: 21, rMin: 21, rMax: 30,
+                    rango: 9, rMed: 24.7, estab: "❌ Sensible" },
+                { m: "Santo Domingo Chihuitán", rACP: 42, iccACP: 16.48, iccIg: 24.34, iccSof: 19.11, iccMan: 22.75,
+                    iccDin: 15.80, iccDiv: 33.53, rIg: 35, rSof: 39, rMan: 35, rDin: 43, rDiv: 23, rMin: 23, rMax: 43,
+                    rango: 20, rMed: 36.2, estab: "❌ Sensible" },
+                { m: "Santo Domingo Petapa", rACP: 33, iccACP: 21.19, iccIg: 24.25, iccSof: 21.93, iccMan: 23.98,
+                    iccDin: 21.49, iccDiv: 27.18, rIg: 36, rSof: 33, rMan: 30, rDin: 34, rDiv: 37, rMin: 30, rMax: 37,
+                    rango: 7, rMed: 33.8, estab: "❌ Sensible" },
+                { m: "Santo Domingo Tehuantepec", rACP: 2, iccACP: 51.04, iccIg: 55.32, iccSof: 55.17, iccMan: 54.87,
+                    iccDin: 49.04, iccDiv: 59.00, rIg: 2, rSof: 2, rMan: 2, rDin: 2, rDiv: 2, rMin: 2, rMax: 2, rango: 0,
+                    rMed: 2, estab: "🔒 Muy estable" },
+                { m: "Santo Domingo Zanatepec", rACP: 22, iccACP: 23.27, iccIg: 28.14, iccSof: 25.01, iccMan: 26.06,
+                    iccDin: 23.30, iccDiv: 35.16, rIg: 20, rSof: 23, rMan: 23, rDin: 25, rDiv: 18, rMin: 18, rMax: 25,
+                    rango: 7, rMed: 21.8, estab: "❌ Sensible" },
+                { m: "Unión Hidalgo", rACP: 7, iccACP: 31.63, iccIg: 37.13, iccSof: 33.44, iccMan: 39.62, iccDin: 31.70,
+                    iccDiv: 41.42, rIg: 6, rSof: 6, rMan: 4, rDin: 7, rDiv: 11, rMin: 4, rMax: 11, rango: 7, rMed: 6.8,
+                    estab: "❌ Sensible" }
+            ];
+const ueData = {
+                "Asunción Ixtaltepec": { u2020: 716, u2025: 779, s2025: [0, 2, 2, 1, 155, 73, 11, 5, 229, 2, 0, 1, 5, 3,
+                        6, 0, 8, 21, 28, 10, 137, 73, 5
+                    ] },
+                "El Barrio de la Soledad": { u2020: 470, u2025: 475, s2025: [1, 1, 2, 1, 20, 3, 8, 3, 143, 3, 1, 5, 8, 4,
+                        7, 0, 6, 16, 24, 5, 77, 58, 9
+                    ] },
+                "Ciudad Ixtepec": { u2020: 2833, u2025: 2883, s2025: [0, 0, 2, 2, 385, 61, 71, 41, 1017, 10, 1, 6, 28, 33,
+                        21, 0, 18, 72, 85, 20, 582, 320, 39
+                    ] },
+                "Chahuites": { u2020: 1172, u2025: 1291, s2025: [3, 0, 1, 1, 172, 24, 23, 60, 524, 2, 1, 5, 3, 2, 4, 0, 4,
+                        21, 19, 7, 263, 141, 3
+                    ] },
+                "El Espinal": { u2020: 524, u2025: 624, s2025: [0, 0, 4, 5, 72, 6, 12, 7, 193, 0, 1, 2, 3, 8, 5, 0, 7, 20,
+                        36, 11, 160, 90, 12
+                    ] },
+                "Guevea de Humboldt": { u2020: 113, u2025: 200, s2025: [0, 0, 1, 0, 71, 7, 8, 1, 54, 1, 0, 2, 1, 0, 0, 0,
+                        1, 6, 4, 0, 22, 20, 1
+                    ] },
+                "Heroica Ciudad de Juchitán de Zaragoza": { u2020: 11718, u2025: 12604, s2025: [88, 0, 13, 16, 4563, 210,
+                        365, 121, 3897, 16, 8, 22, 79, 79, 96, 0, 52, 165, 351, 80, 1852, 1096, 51
+                    ] },
+                "Magdalena Tequisistlán": { u2020: 370, u2025: 404, s2025: [0, 1, 3, 0, 73, 9, 7, 5, 158, 0, 0, 5, 3, 4, 8,
+                        0, 5, 11, 13, 3, 81, 43, 6
+                    ] },
+                "Magdalena Tlacotepec": { u2020: 108, u2025: 152, s2025: [0, 0, 1, 0, 40, 2, 0, 0, 46, 0, 0, 0, 0, 1, 2, 0,
+                        0, 3, 2, 0, 37, 16, 2
+                    ] },
+                "Matías Romero Avendaño": { u2020: 2841, u2025: 2975, s2025: [5, 0, 3, 4, 162, 32, 54, 61, 1401, 13, 7, 5,
+                        39, 15, 45, 0, 32, 62, 121, 17, 430, 427, 60
+                    ] },
+                "Santiago Niltepec": { u2020: 347, u2025: 417, s2025: [0, 0, 1, 0, 72, 11, 15, 7, 158, 0, 0, 2, 2, 1, 4, 0,
+                        2, 9, 11, 4, 69, 43, 6
+                    ] },
+                "Reforma de Pineda": { u2020: 303, u2025: 325, s2025: [0, 0, 1, 0, 47, 3, 13, 5, 115, 0, 0, 2, 1, 0, 2, 0,
+                        1, 6, 4, 0, 87, 35, 3
+                    ] },
+                "Salina Cruz": { u2020: 6003, u2025: 6169, s2025: [152, 6, 7, 26, 326, 81, 126, 124, 2457, 39, 12, 22, 123,
+                        74, 121, 0, 36, 160, 284, 63, 1178, 879, 69
+                    ] },
+                "San Blas Atempa": { u2020: 2598, u2025: 2776, s2025: [1, 0, 1, 0, 1570, 30, 56, 7, 445, 2, 0, 5, 3, 9, 12,
+                        0, 10, 14, 25, 10, 461, 119, 6
+                    ] },
+                "San Dionisio del Mar": { u2020: 272, u2025: 414, s2025: [83, 0, 1, 0, 98, 4, 8, 2, 122, 1, 0, 0, 0, 2, 8,
+                        0, 3, 11, 3, 0, 37, 30, 1
+                    ] },
+                "San Francisco del Mar": { u2020: 507, u2025: 1055, s2025: [376, 0, 2, 0, 97, 9, 19, 10, 254, 1, 0, 2, 2, 2,
+                        4, 0, 2, 10, 13, 4, 173, 67, 7
+                    ] },
+                "San Francisco Ixhuatán": { u2020: 604, u2025: 803, s2025: [88, 0, 1, 1, 114, 10, 22, 11, 264, 3, 2, 2, 3, 1,
+                        8, 0, 6, 15, 26, 1, 160, 70, 5
+                    ] },
+                "San Juan Cotzocón": { u2020: 1339, u2025: 1363, s2025: [0, 0, 2, 1, 771, 17, 20, 36, 319, 6, 1, 3, 4, 0, 9,
+                        0, 7, 23, 30, 3, 88, 100, 23
+                    ] },
+                "San Juan Guichicovi": { u2020: 723, u2025: 676, s2025: [3, 0, 1, 0, 378, 4, 12, 2, 136, 3, 0, 2, 3, 1, 2,
+                        0, 5, 7, 5, 3, 64, 42, 4
+                    ] },
+                "San Juan Mazatlán": { u2020: 121, u2025: 110, s2025: [4, 0, 1, 0, 10, 3, 2, 3, 46, 3, 0, 0, 1, 0, 0, 0, 1,
+                        4, 1, 0, 17, 10, 4
+                    ] },
+                "San Lucas Camotlán": { u2020: 64, u2025: 106, s2025: [0, 0, 1, 0, 6, 1, 1, 0, 63, 0, 0, 0, 0, 0, 0, 0, 0,
+                        7, 1, 0, 11, 14, 1
+                    ] },
+                "San Mateo del Mar": { u2020: 845, u2025: 990, s2025: [126, 0, 0, 0, 322, 7, 12, 1, 334, 1, 0, 2, 1, 0, 1,
+                        0, 7, 19, 10, 2, 92, 41, 10
+                    ] },
+                "San Miguel Chimalapa": { u2020: 99, u2025: 122, s2025: [0, 0, 1, 0, 23, 1, 4, 3, 57, 0, 0, 0, 0, 0, 1, 0,
+                        1, 4, 5, 1, 15, 4, 2
+                    ] },
+                "San Miguel Tenango": { u2020: 47, u2025: 54, s2025: [0, 0, 1, 0, 5, 1, 4, 0, 28, 1, 0, 0, 0, 0, 0, 0, 0, 4,
+                        3, 0, 1, 5, 1
+                    ] },
+                "San Pedro Comitancillo": { u2020: 365, u2025: 449, s2025: [0, 0, 1, 1, 124, 2, 7, 6, 159, 0, 0, 1, 2, 2, 5,
+                        0, 1, 10, 10, 4, 76, 37, 1
+                    ] },
+                "San Pedro Huamelula": { u2020: 175, u2025: 277, s2025: [17, 0, 8, 0, 51, 6, 5, 0, 95, 0, 0, 1, 1, 0, 1, 0,
+                        3, 9, 5, 3, 45, 22, 5
+                    ] },
+                "San Pedro Huilotepec": { u2020: 200, u2025: 282, s2025: [0, 1, 2, 0, 63, 1, 5, 0, 109, 1, 0, 1, 0, 4, 1, 0,
+                        1, 7, 5, 2, 60, 16, 2
+                    ] },
+                "San Pedro Tapanatepec": { u2020: 830, u2025: 966, s2025: [69, 1, 1, 0, 66, 14, 22, 21, 360, 7, 1, 5, 13, 3,
+                        8, 0, 6, 17, 28, 3, 195, 112, 16
+                    ] },
+                "Santa María Chimalapa": { u2020: 157, u2025: 153, s2025: [0, 0, 2, 0, 31, 2, 3, 3, 72, 1, 0, 0, 0, 0, 0, 0,
+                        0, 5, 4, 1, 14, 13, 2
+                    ] },
+                "Santa María Guienagati": { u2020: 250, u2025: 232, s2025: [0, 0, 1, 0, 41, 11, 15, 1, 79, 0, 0, 1, 1, 0, 0,
+                        0, 0, 5, 3, 1, 52, 18, 3
+                    ] },
+                "Santa María Jalapa del Marqués": { u2020: 969, u2025: 1187, s2025: [276, 0, 1, 0, 134, 16, 25, 6, 379, 2, 1,
+                        5, 7, 9, 9, 0, 4, 21, 32, 5, 205, 132, 9
+                    ] },
+                "Santa María Mixtequilla": { u2020: 308, u2025: 368, s2025: [0, 0, 2, 0, 44, 5, 13, 2, 130, 0, 0, 0, 0, 0, 2,
+                        0, 1, 7, 10, 3, 101, 43, 5
+                    ] },
+                "Santa María Petapa": { u2020: 335, u2025: 413, s2025: [0, 0, 1, 0, 118, 15, 14, 2, 90, 3, 0, 0, 2, 3, 2, 0,
+                        3, 9, 10, 0, 104, 36, 3
+                    ] },
+                "Santa María Totolapilla": { u2020: 48, u2025: 64, s2025: [0, 0, 1, 0, 10, 1, 3, 0, 19, 0, 0, 2, 0, 0, 1, 0,
+                        1, 6, 4, 1, 8, 5, 2
+                    ] },
+                "Santa María Xadani": { u2020: 1730, u2025: 1945, s2025: [31, 0, 1, 0, 1255, 6, 42, 3, 281, 1, 0, 2, 1, 11,
+                        10, 0, 3, 17, 12, 8, 172, 87, 3
+                    ] },
+                "Santiago Astata": { u2020: 236, u2025: 297, s2025: [13, 0, 1, 0, 50, 1, 8, 1, 99, 1, 0, 1, 3, 0, 3, 0, 2, 7,
+                        7, 0, 66, 19, 3
+                    ] },
+                "Santiago Ixcuintepec": { u2020: 59, u2025: 79, s2025: [0, 0, 1, 0, 4, 1, 3, 0, 39, 0, 0, 0, 0, 0, 0, 0, 0,
+                        3, 1, 0, 12, 12, 4
+                    ] },
+                "Santiago Lachiguiri": { u2020: 96, u2025: 147, s2025: [0, 0, 2, 0, 13, 6, 7, 0, 69, 0, 0, 2, 0, 0, 2, 0, 1,
+                        6, 4, 1, 16, 14, 4
+                    ] },
+                "Santiago Laollaga": { u2020: 289, u2025: 278, s2025: [1, 0, 1, 0, 50, 2, 3, 1, 87, 0, 0, 2, 2, 1, 4, 0, 2,
+                        11, 8, 2, 75, 19, 2
+                    ] },
+                "Santiago Yaveo": { u2020: 58, u2025: 67, s2025: [0, 0, 1, 0, 11, 1, 3, 0, 27, 0, 0, 0, 0, 0, 0, 0, 0, 4, 2,
+                        0, 5, 9, 4
+                    ] },
+                "Santo Domingo Ingenio": { u2020: 556, u2025: 581, s2025: [0, 0, 1, 0, 61, 10, 13, 5, 291, 3, 0, 2, 4, 3, 3,
+                        1, 4, 8, 13, 5, 95, 72, 2
+                    ] },
+                "Santo Domingo Chihuitán": { u2020: 137, u2025: 109, s2025: [1, 0, 1, 0, 23, 0, 3, 2, 39, 1, 0, 1, 0, 1, 2,
+                        0, 0, 3, 2, 0, 18, 9, 3
+                    ] },
+                "Santo Domingo Petapa": { u2020: 370, u2025: 462, s2025: [0, 0, 0, 0, 120, 5, 17, 2, 148, 2, 0, 2, 1, 0, 3,
+                        0, 1, 9, 7, 2, 78, 60, 5
+                    ] },
+                "Santo Domingo Tehuantepec": { u2020: 5149, u2025: 5782, s2025: [304, 0, 8, 7, 733, 87, 117, 61, 1950, 19, 4,
+                        9, 47, 44, 71, 0, 32, 116, 167, 28, 1211, 607, 54
+                    ] },
+                "Santo Domingo Zanatepec": { u2020: 892, u2025: 988, s2025: [0, 0, 3, 0, 147, 32, 26, 18, 356, 2, 1, 4, 3, 6,
+                        10, 0, 4, 19, 38, 9, 177, 105, 22
+                    ] },
+                "Unión Hidalgo": { u2020: 1096, u2025: 1360, s2025: [0, 0, 3, 0, 325, 19, 22, 10, 502, 2, 1, 5, 3, 13, 14, 0,
+                        7, 27, 36, 7, 240, 126, 5
+                    ] }
+            };
+const sectorNames = [
+                "Agricultura", "Minería", "Energía", "Construcción", "Mfg Alim/Beb",
+                "Mfg Madera/Papel", "Mfg Metal/Maq", "Comercio Mayorista", "Comercio Minorista",
+                "Transporte", "Transp. Turístico", "Información", "Serv. Financieros",
+                "Serv. Inmobiliarios", "Serv. Profesionales", "Corporativos", "Serv. Apoyo",
+                "Educación", "Salud", "Esparcimiento", "Alojamiento", "Otros Servicios", "Gobierno"
+            ];
+const pesosACP = { D1: 0.0795, D2: 0.1654, D3: 0.1168, D4: 0.1713, D5: 0.1413, D6: 0.3257 };
+const dimNames = ["D1 Diversificación", "D2 Alto Valor", "D3 Manufactura", "D4 Comercio/Serv",
+                "D5 Infraestructura", "D6 Dinamismo"
+            ];
+const dimKeys = ["D1","D2","D3","D4","D5","D6"];
+const maxVals = { D1: 23, D2: 2500, D3: 5200, D4: 5200, D5: 100, D6: 7000 };
+function fmt(n,d=1){return Number(n).toLocaleString('es-MX',{maximumFractionDigits:d,minimumFractionDigits:d})}
+function pct(n){return (n>=0?'+':'')+fmt(n,1)+'%'}
+function scores(m){const d=ueData[m],s=d.s2025; const activos=s.filter(v=>v>0).length; const D2=s[11]+s[12]+s[13]+s[14]+s[15]+s[16]+s[17]+s[18]; const D3=s[4]+s[5]+s[6]; const D4=s[7]+s[8]+s[20]+s[21]; const D5=s[2]+s[3]+s[9]+s[10]; const tasa=d.u2020>0?((d.u2025-d.u2020)/d.u2020)*100:0; const D6=d.u2025*.5192+Math.max(0,tasa)*2.5; return {D1:activos,D2,D3,D4,D5,D6,tasa,u2025:d.u2025,u2020:d.u2020};}
+function norm(sc){let r={}; dimKeys.forEach(k=>r[k]=Math.max(0,Math.min(100,(sc[k]||0)/maxVals[k]*100))); return r;}
+function iccem(m){return sensibilidadData.find(x=>x.m===m)}
+function categoria(v){if(v>=45)return 'Nodo tractor'; if(v>=30)return 'Nodo emergente'; if(v>=22)return 'Base de consolidación'; return 'Reconversión inicial'}
+function estabilidadLabel(e){return e.replace(/[✅⚠️❌🔒]/g,'').trim()}
+function topSectors(m,n=5){return ueData[m].s2025.map((v,i)=>({name:sectorNames[i],value:v,i})).sort((a,b)=>b.value-a.value).slice(0,n)}
+function sectorTractor(m){const top=topSectors(m,1)[0]; const s=ueData[m].s2025; if(s[9]+s[7]+s[10]>80) return 'Logística y comercio mayorista'; if(s[4]+s[5]+s[6]>300) return 'Agroindustria y manufactura'; if(s[20]>200) return 'Turismo y servicios locales'; if(s[2]+s[3]>20) return 'Energía / construcción'; return top.name;}
+function tipoIntervencion(m){const s=iccem(m), sc=scores(m); if(s.iccACP>=45) return 'Escalamiento industrial y atracción de inversión'; if(sc.tasa>=25 && s.iccACP<30) return 'Aceleración de capacidades y formalización'; if(s.iccACP>=30) return 'Especialización sectorial y proveeduría'; return 'Reconversión básica y digitalización MIPYME';}
+const municipios=sensibilidadData.map(x=>x.m);
+let radarChart, scatterChart;
+function init(){const sel=document.getElementById('municipioSelect'); municipios.sort((a,b)=>iccem(a).rACP-iccem(b).rACP).forEach(m=>{const o=document.createElement('option'); o.value=m; o.textContent=`${iccem(m).rACP}. ${m}`; sel.appendChild(o)}); sel.value='Heroica Ciudad de Juchitán de Zaragoza'; sel.addEventListener('change',update); document.querySelectorAll('button[data-view]').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('button[data-view]').forEach(x=>x.classList.remove('active')); b.classList.add('active'); document.querySelectorAll('.view').forEach(v=>v.classList.add('hidden')); document.getElementById('view-'+b.dataset.view).classList.remove('hidden'); if(b.dataset.view==='mapa') setTimeout(drawScatter,60);})); buildStatic(); update();}
+function update(){const m=document.getElementById('municipioSelect').value; const s=iccem(m), sc=scores(m), no=norm(sc), tops=topSectors(m,5); document.getElementById('kpiBox').innerHTML=`<div class="kpi"><div class="v">${fmt(s.iccACP,2)}</div><div class="l">ICCEM ACP</div></div><div class="kpi"><div class="v">#${s.rACP}</div><div class="l">Ranking</div></div><div class="kpi"><div class="v">${pct(sc.tasa)}</div><div class="l">Crecimiento UE</div></div><div class="kpi"><div class="v">${sc.u2025.toLocaleString('es-MX')}</div><div class="l">UE 2025</div></div>`; document.getElementById('municipioFicha').innerHTML=`<h2 style="margin-bottom:8px">${m}</h2><div class="taglist"><span class="pill blue">${categoria(s.iccACP)}</span><span class="pill gold">Ranking #${s.rACP}</span><span class="pill green">${estabilidadLabel(s.estab)}</span></div><p class="small" style="margin-top:12px">Sector tractor sugerido: <b>${sectorTractor(m)}</b>. Tipo de intervención: <b>${tipoIntervencion(m)}</b>.</p>`; document.getElementById('dimensiones').innerHTML=dimKeys.map((k,i)=>`<div class="dim-row"><div>${dimNames[i]}</div><div class="bar-bg"><div class="bar" style="width:${no[k]}%"></div></div><div>${fmt(no[k],0)}</div></div>`).join(''); document.getElementById('sectoresTop').innerHTML=tops.map((t,idx)=>`<div class="sector-card"><strong>${idx+1}. ${t.name}</strong><div class="small">${t.value.toLocaleString('es-MX')} unidades económicas</div><div class="taglist"><span class="tag">Participación ${(t.value/sc.u2025*100).toFixed(1)}%</span></div></div>`).join(''); document.getElementById('ejemploMunicipal').innerHTML=`<b>Lectura aplicada:</b> en ${m}, el sector dominante es <b>${tops[0].name}</b> con ${tops[0].value.toLocaleString('es-MX')} UE. La reconversión debe mover parte de esta base hacia mayor valor: digitalización, trazabilidad, logística, automatización ligera y servicios técnicos.`; document.getElementById('diagnosticoTexto').innerHTML=diagnostico(m); document.getElementById('accionesCapacidad').innerHTML=acciones(m).map((x,i)=>`<div class="step"><div class="num">${i+1}</div><div><b>${x.t}</b><div class="small">${x.d}</div></div></div>`).join(''); drawRadar(m);}
+function diagnostico(m){const s=iccem(m), sc=scores(m); let foco=sc.tasa<0?'recuperar unidades económicas perdidas':'convertir crecimiento empresarial en productividad'; let txt=`<p>El municipio se clasifica como <b>${categoria(s.iccACP)}</b>. Su ICCEM de <b>${fmt(s.iccACP,2)}</b> y ranking <b>#${s.rACP}</b> indican una capacidad relativa para sostener actividad económica respecto al conjunto regional.</p>`; txt+=`<p>Entre 2020 y 2025 pasó de <b>${sc.u2020.toLocaleString('es-MX')}</b> a <b>${sc.u2025.toLocaleString('es-MX')}</b> unidades económicas (${pct(sc.tasa)}). La prioridad es <b>${foco}</b>.</p>`; txt+=`<p>La recomendación operativa es orientar inversión hacia <b>${sectorTractor(m)}</b>, integrando IA, robótica ligera, digitalización y encadenamientos locales.</p>`; return txt;}
+function acciones(m){const sc=scores(m), s=iccem(m), top=topSectors(m,1)[0].name; let arr=[{t:'Digitalizar la base empresarial',d:'Inventarios, ventas, costos, facturación, catálogos y trazabilidad para que las unidades económicas generen datos útiles.'},{t:'Crear proveeduría local',d:'Conectar empresas locales con construcción, logística, agroindustria, turismo, energía y compras públicas.'},{t:'Introducir IA aplicada',d:'Pronóstico de demanda, atención al cliente, rutas, precios, control de inventarios y análisis financiero básico.'},{t:'Automatización progresiva',d:'Drones, sensores, CNC, visión artificial o robots colaborativos donde exista escala mínima.'}]; if(s.iccACP>=45) arr.push({t:'Atracción de inversión tractora',d:'Usar el alto ICCEM para atraer empresas ancla con compromisos de proveedores locales.'}); else arr.push({t:'Consolidación de capacidades básicas',d:`Fortalecer ${top}, formalización, capacitación técnica y acceso a crédito productivo.`}); return arr;}
+function drawRadar(m){
+  const no=norm(scores(m));
+  const data=dimKeys.map(k=>no[k]);
+  const ctx=document.getElementById('radar');
+  if(radarChart) radarChart.destroy();
+  radarChart=new Chart(ctx,{
+    type:'radar',
+    data:{labels:dimNames,datasets:[{label:m,data:data,fill:true,borderColor:'#38bdf8',backgroundColor:'rgba(56,189,248,.16)',pointBackgroundColor:'#818cf8'}]},
+    options:{maintainAspectRatio:false,plugins:{legend:{labels:{color:'#dbe7ff'}}},scales:{r:{min:0,max:100,ticks:{color:'#8fa3c2',backdropColor:'transparent'},grid:{color:'#273550'},angleLines:{color:'#273550'},pointLabels:{color:'#dbe7ff'}}}}
+  });
+}
+function drawScatter(){
+  const ctx=document.getElementById('scatter');
+  if(scatterChart) scatterChart.destroy();
+  scatterChart=new Chart(ctx,{
+    type:'bubble',
+    data:{datasets:[{label:'Municipios ICCEM',data:municipios.map(m=>{const s=iccem(m),sc=scores(m);return {x:s.iccACP,y:sc.tasa,r:Math.max(4,Math.min(22,Math.sqrt(sc.u2025)/4)),m,ue:sc.u2025}}),backgroundColor:'rgba(56,189,248,.35)',borderColor:'#38bdf8'}]},
+    options:{maintainAspectRatio:false,plugins:{legend:{labels:{color:'#dbe7ff'}},tooltip:{callbacks:{label:(c)=>`${c.raw.m}: ICCEM ${fmt(c.raw.x,2)}, crecimiento ${pct(c.raw.y)}, UE ${c.raw.ue.toLocaleString('es-MX')}`}}},scales:{x:{title:{display:true,text:'ICCEM ACP',color:'#dbe7ff'},ticks:{color:'#9fb0ca'},grid:{color:'#263550'}},y:{title:{display:true,text:'Crecimiento UE 2020–2025 (%)',color:'#dbe7ff'},ticks:{color:'#9fb0ca'},grid:{color:'#263550'}}}}
+  });
+}
+function buildStatic(){document.getElementById('tipologias').innerHTML=['Nodo tractor: alto ICCEM y escala empresarial. Debe atraer inversión, crear proveedores y acelerar automatización.','Nodo emergente: buen posicionamiento regional. Debe especializarse en sectores tractores y consolidar servicios técnicos.','Base de consolidación: potencial sectorial con brechas de productividad. Debe digitalizar MIPYMES y articularse a cadenas.','Reconversión inicial: baja escala o bajo ICCEM. Debe iniciar con capacitación, formalización, comercio digital y nichos productivos.'].map((t,i)=>`<div class="step"><div class="num">${i+1}</div><div>${t}</div></div>`).join(''); document.getElementById('rankingBody').innerHTML=municipios.sort((a,b)=>iccem(a).rACP-iccem(b).rACP).map(m=>{const s=iccem(m),sc=scores(m);return `<tr><td>${s.rACP}</td><td>${m}</td><td>${fmt(s.iccACP,2)}</td><td>${pct(sc.tasa)}</td><td>${sc.u2025.toLocaleString('es-MX')}</td><td>${tipoIntervencion(m)}</td><td>${sectorTractor(m)}</td></tr>`}).join(''); document.getElementById('rutaCards').innerHTML=[['1','Diagnóstico ICCEM','Usar ranking, dimensiones, UE 2020–2025 y sectores para detectar nodos tractores y brechas.'],['2','Especialización','Asignar a cada municipio un sector tractor: agroindustria, logística, turismo, manufactura, energía o construcción.'],['3','Digitalización','Ordenar datos empresariales: inventarios, ventas, trazabilidad, costos y catálogos.'],['4','IA y robótica','Adoptar IA, sensores, drones, CNC y automatización ligera según escala y sector.'],['5','Encadenamientos','Crear proveedores locales para CIIT, turismo, obra pública, agroindustria y energía.']].map(x=>`<div class="route-card"><h3>${x[0]}. ${x[1]}</h3><p class="small">${x[2]}</p></div>`).join(''); document.getElementById('arquitectura').innerHTML=[['Gobierno estatal/municipal','Ventanilla única, incentivos condicionados, información territorial y compras públicas innovadoras.'],['Universidades y tecnológicos','Capacitación en IA, datos, automatización, logística, mantenimiento, agroindustria y turismo digital.'],['Empresas tractoras','Demanda, estándares de calidad, transferencia tecnológica y contratos a proveedores locales.'],['MIPYMES','Adopción digital, formalización, mejora de procesos, certificación y financiamiento productivo.']].map((x,i)=>`<div class="step"><div class="num">${i+1}</div><div><b>${x[0]}</b><div class="small">${x[1]}</div></div></div>`).join(''); const cartera=[['Agroindustria inteligente','Café, mezcal, cacao, frutas, miel y pesca con trazabilidad, empaque, calidad e IA climática.','Drones, sensores, visión artificial, trazabilidad.'],['Logística inteligente','Aprovechar el CIIT para almacenamiento, rutas, cadena de frío y mantenimiento de transporte.','IA de rutas, WMS, RFID, mantenimiento predictivo.'],['Manufactura ligera automatizada','Alimentos, textiles, madera, metalmecánica, empaques y artesanías de alto valor.','CNC, diseño IA, robots colaborativos.'],['Construcción 4.0','Prefabricados, supervisión, materiales, mantenimiento y obra digital.','BIM, drones, sensores, presupuestos IA.'],['Turismo inteligente','Aumentar derrama local con reservas, analítica, rutas culturales y e-commerce artesanal.','IA generativa, CRM, precios dinámicos.'],['Energía y mantenimiento','Servicios para eólica, solar, eficiencia energética y sistemas eléctricos industriales.','IoT, mantenimiento predictivo, monitoreo remoto.']]; document.getElementById('carteraSectores').innerHTML=cartera.map(x=>`<div class="sector-card"><strong>${x[0]}</strong><p class="small">${x[1]}</p><div class="taglist"><span class="tag">${x[2]}</span></div></div>`).join(''); document.getElementById('sectorMunicipios').innerHTML=[['Logística inteligente','Salina Cruz, Santo Domingo Tehuantepec, Juchitán, Matías Romero','Alto ICCEM, escala empresarial, transporte, comercio y servicios','Centro de logística inteligente y mantenimiento de transporte'],['Agroindustria inteligente','Juchitán, San Blas Atempa, Santa María Xadani, Unión Hidalgo, Chahuites','Base manufacturera alimentaria y comercio regional','Plataforma de trazabilidad agroindustrial'],['Turismo inteligente','Salina Cruz, Tehuantepec, Juchitán, Ciudad Ixtepec','Alojamiento, servicios, comercio y conectividad','Observatorio turístico y marketplace regional'],['Energía / mantenimiento','Salina Cruz, El Espinal, Unión Hidalgo, Juchitán','Energía, construcción, servicios técnicos y escala','Centro de mantenimiento industrial y energía'],['Manufactura ligera','Ciudad Ixtepec, Matías Romero, Juchitán, Tehuantepec','Manufactura, comercio, servicios profesionales y capital humano','Laboratorio de automatización ligera y CNC']].map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td></tr>`).join('');}
+init();
+</script>
+</body>
+</html>
